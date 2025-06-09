@@ -9,7 +9,7 @@ class GraphFrame(QWidget):
     def __init__(self, main_window=None):
         super().__init__()
         self.main_window = main_window
-        self.data = []  # [(x, y, color)]
+        self.data = [(0,0,0)]  # [(x, y, color)]
         self.colors = [QColor(255, 0, 0), QColor(0, 255, 0), QColor(0, 0, 255)]
         self.scale_x = 50  # 1 единица X = 50 пикселей
         self.scale_y = 44  # 1 единица Y ≈ 44 пикселя
@@ -23,6 +23,25 @@ class GraphFrame(QWidget):
 
         # Режим автоскролла
         self.auto_scroll = True  # По умолчанию включен
+
+
+    def add_point(self, force, direction, color, number):
+        x = len(self.data)
+        y = 0
+        if self.data:
+            prev_y = self.data[-1][1]
+            if direction == "вверх":
+                y = prev_y + force
+            else:
+                y = prev_y - force
+
+        new_point = (x, y, color, number)
+        self.data.append(new_point)
+        self.setMinimumWidth(max(self.minimumWidth(), self.origin_x + x * self.scale_x + 100))
+        self.update()
+
+        if self.main_window is not None:
+            self.main_window.auto_scroll_to_last_point()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -90,7 +109,7 @@ class GraphFrame(QWidget):
         for i in range(len(self.data) - 1):
             x1, y1 = self.data[i][0], self.data[i][1]
             x2, y2 = self.data[i + 1][0], self.data[i + 1][1]
-            color = self.data[i][2]
+            color = self.data[i+1][2]
 
             screen_x1 = self.origin_x + x1 * self.scale_x
             screen_y1 = self.origin_y - y1 * self.scale_y
@@ -100,21 +119,3 @@ class GraphFrame(QWidget):
             painter.setPen(color)
             painter.drawLine(int(screen_x1), int(screen_y1), int(screen_x2), int(screen_y2))
             painter.drawEllipse(int(screen_x2) - 4, int(screen_y2) - 4, 8, 8)
-
-    def update_data(self):
-        new_point = (
-            len(self.data),
-            random.randint(-5, 5),
-            random.choice(self.colors)
-        )
-        self.data.append(new_point)
-
-        # Обновляем ширину графика
-        new_width = self.origin_x + len(self.data) * self.scale_x + 100
-        self.setMinimumWidth(int(new_width))
-
-        self.update()
-
-        # Вызываем автоскролл
-        if self.main_window is not None:
-            self.main_window.auto_scroll_to_last_point()

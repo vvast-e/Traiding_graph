@@ -1,16 +1,18 @@
 from PyQt6.QtWidgets import QWidget, QGridLayout, QPushButton
+from PyQt6.QtGui import QColor
 
 
 class GridDisplay(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.grid_layout = QGridLayout()
-        self.setLayout(self.grid_layout)
-
-        # Размер сетки (например, 10x10)
+        self.parent = parent
         self.rows = 10
         self.cols = 10
+        self.current_index = 0  # Текущая позиция для заполнения
 
+        self.grid_layout = QGridLayout()
+        self.setLayout(self.grid_layout)
+        self.setFixedSize(700, 400)
 
         # Создаем ячейки
         self.cells = []
@@ -24,14 +26,8 @@ class GridDisplay(QWidget):
                 row_cells.append(cell)
             self.cells.append(row_cells)
 
-        # Данные для отображения
-        self.data = [[None for _ in range(self.cols)] for _ in range(self.rows)]
-
     def update_grid(self, data):
-        """
-        Обновляет сетку на основе входных данных.
-        :param data: Список списков [(color, digit), ...]
-        """
+        """Обновляет сетку по данным"""
         for row in range(self.rows):
             for col in range(self.cols):
                 color, digit = data[row][col]
@@ -41,3 +37,14 @@ class GridDisplay(QWidget):
                     cell.setText(str(digit))
                 else:
                     cell.setText("")
+
+    def add_next_cell(self, color, number):
+        """Добавляет цвет и номер в следующую ячейку"""
+        row = self.current_index // self.cols
+        col = self.current_index % self.cols
+
+        cell = self.cells[row][col]
+        cell.setStyleSheet(f"background-color: {color.name()};")
+        cell.setText(str(number))
+
+        self.current_index += 1
