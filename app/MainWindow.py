@@ -1,16 +1,12 @@
-import random
 import sys
 
 from PyQt6.QtGui import QColor
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QFrame, QApplication, QPushButton, \
-    QScrollArea
-from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QFrame, QApplication, QPushButton, QScrollArea, QLabel
+from PyQt6.QtCore import Qt
 
-from handlers.GraghFrame import GraphFrame
-from handlers.IntervalSettings import IntervalSettings
-from handlers.indicators import Indicators
-from handlers.Keyboard import Keyboard
 from handlers.GridDisplay import GridDisplay
+from handlers.GraghFrame import GraphFrame
+from handlers.Keyboard import Keyboard
 
 
 class MainWindow(QMainWindow):
@@ -24,8 +20,8 @@ class MainWindow(QMainWindow):
 
         # Фрейм для графика / сетки
         self.display_widget = QFrame()
-        self.display_widget.setMaximumWidth(700)
         self.display_layout = QVBoxLayout(self.display_widget)
+        self.display_widget.setFixedSize(700,480)
 
         # График
         self.graph_frame = GraphFrame(main_window=self)
@@ -45,8 +41,12 @@ class MainWindow(QMainWindow):
         self.display_layout.addWidget(self.grid_display)
         self.grid_display.hide()
 
-        # Кнопка "Слежение"
-        self.follow_button = QPushButton("Слежение")
+        self.buttons_widget = QWidget()
+        self.buttons_layout =QHBoxLayout()
+        self.buttons_widget.setFixedSize(270,40)
+
+        self.follow_button = QPushButton("Слежение: ВКЛ")
+        self.follow_button.setFixedSize(100, 20)
         self.follow_button.setCheckable(True)
         self.follow_button.setChecked(True)
         self.follow_button.clicked.connect(self.toggle_follow_mode)
@@ -54,29 +54,36 @@ class MainWindow(QMainWindow):
 
         # Переключатель
         self.switch_button = QPushButton("Переключить отображение")
+        self.switch_button.setFixedSize(160, 20)
         self.switch_button.clicked.connect(self.toggle_display)
         self.display_layout.addWidget(self.switch_button)
 
+        self.buttons_layout.addWidget(self.follow_button)
+        self.buttons_layout.addWidget(self.switch_button)
+        self.buttons_widget.setLayout(self.buttons_layout)
+
         # Клавиатура ввода
-        keyboard = Keyboard(self)
-        self.display_layout.addWidget(keyboard)
+        self.keyboard_widget=QWidget()
+        self.keyboard_widget.setFixedSize(700,120)
+        self.keyboard_layout = QHBoxLayout()
+
+        self.keyboard = Keyboard(main_window=self)
+        self.keyboard_layout.addWidget(self.keyboard)
+
+        self.keyboard_widget.setLayout(self.keyboard_layout)
 
         # Собираем всё вместе
         main_layout.addWidget(self.display_widget)  # График и сетка
+        main_layout.addWidget(self.buttons_widget)
+        main_layout.addWidget(self.keyboard_widget)
 
         central_widget = QWidget()
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
 
-        # Таймер для обновления данных
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_data)
-        self.timer.start(1000)  # Обновление каждую секунду
-
     def toggle_follow_mode(self, checked):
         self.graph_frame.auto_scroll = checked
-        self.follow_button.setText("Слежение" if checked else "Слежение: ВЫКЛ")
-
+        self.follow_button.setText("Слежение: ВКЛ" if checked else "Слежение: ВЫКЛ")
     def toggle_display(self):
         if self.grid_display.isVisible():
             self.grid_display.hide()
@@ -85,26 +92,12 @@ class MainWindow(QMainWindow):
             self.scroll_area.hide()
             self.grid_display.show()
 
-    def update_data(self):
-        """Обновление данных для обоих типов отображения"""
-        self.graph_frame.update_data()
-
-        grid_data = []
-        for row in range(10):
-            row_data = []
-            for col in range(10):
-                color = random.choice([QColor(255, 0, 0), QColor(0, 255, 0), QColor(0, 0, 255)])
-                digit = random.randint(0, 9) if random.random() > 0.5 else None
-                row_data.append((color, digit))
-            grid_data.append(row_data)
-        self.grid_display.update_grid(grid_data)
-
     def auto_scroll_to_last_point(self):
-        """Автоматически прокручивает к последней точке графика так, чтобы она была в центре"""
+        """Автоматически прокручивает к последней точке так, чтобы она была в центре"""
         if not self.graph_frame.data or not self.graph_frame.auto_scroll:
             return
 
-        last_x, last_y, color = self.graph_frame.data[-1]
+        last_x, last_y = self.graph_frame.data[-1][0], self.graph_frame.data[-1][1]
 
         screen_x = self.graph_frame.origin_x + last_x * self.graph_frame.scale_x
         screen_y = self.graph_frame.origin_y - last_y * self.graph_frame.scale_y
@@ -117,6 +110,11 @@ class MainWindow(QMainWindow):
 
         h_scroll.setValue(int(screen_x - viewport_width // 2))
         v_scroll.setValue(int(screen_y - viewport_height // 2))
+
+    def add_point(self):
+        """Добавляет точку через клавиатуру"""
+        default_color = QColor(255, 0, 0)  # например, красный
+        self.keyboard.on_color_clicked(default_color)
 
 
 if __name__ == "__main__":
